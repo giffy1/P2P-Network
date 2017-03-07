@@ -21,6 +21,11 @@ import time
 import socket
 
 class ServerThread(threading.Thread):
+    """
+    The server thread is responsible for accepting client connections 
+    and receiving data from connected nodes. We only expect a single 
+    client node.
+    """
     def __init__(self, address):
         threading.Thread.__init__(self)
         self.address = address
@@ -40,6 +45,10 @@ class ServerThread(threading.Thread):
                 print "received: " + str(message)
 
 class ClientThread(threading.Thread):
+    """
+    The client thread is responsible for connecting to the node specified 
+    by the given address and sending data to that node.
+    """
     def __init__(self, address):
         threading.Thread.__init__(self)
         self.address = address
@@ -62,11 +71,18 @@ class P2PNode():
         self.address = address
     
     def connect(self, peer):
+        """
+        Connects to the given P2PNode peer.
+        """
         peer.listen()
         client_thread = ClientThread(peer.address)
         client_thread.start()
         
     def listen(self):
+        """
+        Sets up a server socket, which listens for connection attempts 
+        by other nodes.
+        """
         print "starting server thread with address " + str(self.address)
         server_thread = ServerThread(self.address)
         server_thread.start()
