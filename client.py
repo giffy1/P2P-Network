@@ -32,10 +32,10 @@ class ServerThread(threading.Thread):
         self.server_socket.listen(5)
             
         print 'waiting for connection...'
-        cs, addr = self.server_socket.accept()
+        client, addr = self.server_socket.accept()
         print '...connected from:', addr
         while True:
-            message = cs.recv(1024)
+            message = client.recv(1024)
             if message:
                 print "received: " + str(message)
 
