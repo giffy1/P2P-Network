@@ -21,6 +21,7 @@ import time
 import socket
 import Queue
 import json
+import numpy as np
 
 exit_flag = 0
 
@@ -148,24 +149,50 @@ class Pig(P2PNode):
         else:
             print "Pig{} could not send message; no hops left!".format(self.get_id())
         
+    def take_shelter(self, location):
+        """
+        Note: Although the method signature given in the assignment is take_shelter(pigID), 
+        where I believe the pigID refers to the neighbor pig, I chose to design it such that 
+        is informing its neighbors can simply send its position over the P2P network, since 
+        pigs can easily check whether they are neighbors by comparing the positions.
+        """
+        # TODO
+        return
+        
     def on_message_received(self, message):
         print "Pig{} received message from pig{} with content: {}".format(self.get_id(), message['sender'], message['content'])
         print "location:", message['location']
         print "hop count:", message['hop_count']
         if message['propagate']:
             self.broadcast_bird_approaching(message['location'], message['hop_count']-1)
+                
+    def status(self):
+        """
+        Returns the status of the pig. TODO
+        """
+        return self.status
         
-
-pig1 = Pig(('localhost', 9000), (2,1))
-pig2 = Pig(('localhost', 9001), (1,1))
-pig3 = Pig(('localhost', 9002), (0,1))
+pigs = []
+pig1 = Pig(('localhost', 9001), (2,3))
+pig2 = Pig(('localhost', 9002), (1,4))
+pig3 = Pig(('localhost', 9003), (0,1))
+pigs.append(pig1)
+pigs.append(pig2)
+pigs.append(pig3)
 pig1.connect(pig2)
 pig2.connect(pig3)
-pig1.broadcast_bird_approaching((2,3), 1)
+pig1.broadcast_bird_approaching((2,3), 3)
 
 time.sleep(3)
 exit_flag = 1
-        
+
+# we'll work with a 5 x 5 grid to start
+grid = np.zeros((5,5))
+
+for pig in pigs:
+    grid[pig.location] = pig.get_id()
+    
+print grid
 #node1 = P2PNode(('localhost', 9999))
 #node2 = P2PNode(('localhost', 8888))
 #
