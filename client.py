@@ -48,8 +48,8 @@ class ServerThread(threading.Thread):
             message = client.recv(1024)
             if message:
                 if self.callback:
-                    self.callback()
-                print "received: " + str(message)
+                    self.callback(message)
+                #print "received: " + str(message)
 
 class ClientThread(threading.Thread):
     """
@@ -101,8 +101,12 @@ class P2PNode():
         by other nodes.
         """
         print "starting server thread with address " + str(self.address)
-        server_thread = ServerThread(self.address)
+        server_thread = ServerThread(self.address, self.on_message_received)
         server_thread.start()
+        
+    def on_message_received(self, message):
+        # do nothing, allow subclasses to override this
+        return
         
     def send_message(self, message):
         """
@@ -113,9 +117,9 @@ class P2PNode():
         should be relayed in the P2P network.
         
         """
-        self.queue_lock.acquire();
+        self.queue_lock.acquire()
         self.message_queue.put(message)
-        self.queue_lock.release();
+        self.queue_lock.release()
         
 class Pig(P2PNode):
     def __init__(self, address, location):
@@ -124,6 +128,10 @@ class Pig(P2PNode):
         
     def broadcast_bird_approaching(self, location, hop_count=-1):
         self.send_message({'content' : 'this is a message', 'propogate' : False, 'location' : location, 'hop_count' : hop_count})
+        
+    def on_message_received(self, message):
+        print "received message"
+        print message
 
 pig1 = Pig(('localhost', 9999), (2,1))
 pig2 = Pig(('localhost', 8888), (1,1))
