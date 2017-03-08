@@ -19,6 +19,10 @@ shelter.
 import threading
 import time
 import socket
+import Queue
+import json
+
+exit_flag = 0
 
 class ServerThread(threading.Thread):
     """
@@ -26,9 +30,10 @@ class ServerThread(threading.Thread):
     and receiving data from connected nodes. We only expect a single 
     client node.
     """
-    def __init__(self, address):
+    def __init__(self, address, callback = None):
         threading.Thread.__init__(self)
         self.address = address
+        self.callback = callback
     
     def run(self):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -39,9 +44,11 @@ class ServerThread(threading.Thread):
         print 'waiting for connection...'
         client, addr = self.server_socket.accept()
         print '...connected from:', addr
-        while True:
+        while not exit_flag:
             message = client.recv(1024)
             if message:
+                if self.callback:
+                    self.callback()
                 print "received: " + str(message)
 
 class ClientThread(threading.Thread):
@@ -49,15 +56,23 @@ class ClientThread(threading.Thread):
     The client thread is responsible for connecting to the node specified 
     by the given address and sending data to that node.
     """
-    def __init__(self, address):
+    def __init__(self, address, message_queue, queue_lock):
         threading.Thread.__init__(self)
         self.address = address
+        self.message_queue = message_queue
+        self.queue_lock = queue_lock
     
     def run(self):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client_socket.connect(self.address)
-        time.sleep(2)
-        self.client_socket.send("hello")
+        while not exit_flag:
+            self.queue_lock.acquire() # do we need this because it is the only thread accessing the queue?
+            if not self.message_queue.empty():
+                message = self.message_queue.get()
+                self.client_socket.send(json.dumps(message))
+                self.queue_lock.release()
+            else:
+                self.queue_lock.release()
 
 class P2PNode():
     """
@@ -69,13 +84,15 @@ class P2PNode():
     """
     def __init__(self, address):
         self.address = address
+        self.message_queue = Queue.Queue()
+        self.queue_lock = threading.Lock()
     
     def connect(self, peer):
         """
         Connects to the given P2PNode peer.
         """
         peer.listen()
-        client_thread = ClientThread(peer.address)
+        client_thread = ClientThread(peer.address, self.message_queue, self.queue_lock)
         client_thread.start()
         
     def listen(self):
@@ -87,7 +104,36 @@ class P2PNode():
         server_thread = ServerThread(self.address)
         server_thread.start()
         
-node1 = P2PNode(('localhost', 9999))
-node2 = P2PNode(('localhost', 8888))
+    def send_message(self, message):
+        """
+        Adds a message to the queue to be sent to the node's peer.
+        
+        Messages are by convention in JSON format. They consist of a 
+        'content' field and a 'propagate' field, indicating whether it 
+        should be relayed in the P2P network.
+        
+        """
+        self.queue_lock.acquire();
+        self.message_queue.put(message)
+        self.queue_lock.release();
+        
+class Pig(P2PNode):
+    def __init__(self, address, location):
+        P2PNode.__init__(self, address)
+        self.location = location
+        
+    def broadcast_bird_approaching(self, location, hop_count=-1):
+        self.send_message({'content' : 'this is a message', 'propogate' : False, 'location' : location, 'hop_count' : hop_count})
 
-node1.connect(node2)
+pig1 = Pig(('localhost', 9999), (2,1))
+pig2 = Pig(('localhost', 8888), (1,1))
+pig1.connect(pig2)
+pig1.broadcast_bird_approaching((2,3))
+
+time.sleep(3)
+exit_flag = 1
+        
+#node1 = P2PNode(('localhost', 9999))
+#node2 = P2PNode(('localhost', 8888))
+#
+#node1.connect(node2)
