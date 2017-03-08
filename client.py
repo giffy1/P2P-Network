@@ -48,8 +48,7 @@ class ServerThread(threading.Thread):
             message = client.recv(1024)
             if message:
                 if self.callback:
-                    self.callback(message)
-                #print "received: " + str(message)
+                    self.callback(json.loads(message))
 
 class ClientThread(threading.Thread):
     """
@@ -86,6 +85,8 @@ class P2PNode():
         self.address = address
         self.message_queue = Queue.Queue()
         self.queue_lock = threading.Lock()
+        self.connected_as_client = False
+        self.connected_as_server = False
     
     def connect(self, peer):
         """
@@ -94,6 +95,7 @@ class P2PNode():
         peer.listen()
         client_thread = ClientThread(peer.address, self.message_queue, self.queue_lock)
         client_thread.start()
+        self.connected_as_client = True # TODO only if successful
         
     def listen(self):
         """
@@ -103,6 +105,7 @@ class P2PNode():
         print "starting server thread with address " + str(self.address)
         server_thread = ServerThread(self.address, self.on_message_received)
         server_thread.start()
+        self.connected_as_server = True # TODO only if successful
         
     def on_message_received(self, message):
         # do nothing, allow subclasses to override this
@@ -117,26 +120,48 @@ class P2PNode():
         should be relayed in the P2P network.
         
         """
-        self.queue_lock.acquire()
-        self.message_queue.put(message)
-        self.queue_lock.release()
+        if self.connected_as_client:
+            self.queue_lock.acquire()
+            self.message_queue.put(message)
+            self.queue_lock.release()
+        else:
+            print "no node to send to"
         
 class Pig(P2PNode):
     def __init__(self, address, location):
         P2PNode.__init__(self, address)
         self.location = location
+        self.status = 10 # the status is an integer indicating how many times it can be hit
+        
+    def get_id(self):
+        """
+        Returns a readable unique pig identifier. Pigs can be identified by IP and port, 
+        but incremental identifiers are more readable. So we assume a 1-to-1 mapping 
+        from port (because the IP is always localhost, we can ignore it) to ID.
+        """
+        
+        return self.address[1]-9000
         
     def broadcast_bird_approaching(self, location, hop_count=-1):
-        self.send_message({'content' : 'this is a message', 'propogate' : False, 'location' : location, 'hop_count' : hop_count})
+        if hop_count > 0:
+            self.send_message({'sender' : self.get_id(), 'content' : 'this is a message', 'propagate' : True, 'location' : location, 'hop_count' : hop_count})
+        else:
+            print "Pig{} could not send message; no hops left!".format(self.get_id())
         
     def on_message_received(self, message):
-        print "received message"
-        print message
+        print "Pig{} received message from pig{} with content: {}".format(self.get_id(), message['sender'], message['content'])
+        print "location:", message['location']
+        print "hop count:", message['hop_count']
+        if message['propagate']:
+            self.broadcast_bird_approaching(message['location'], message['hop_count']-1)
+        
 
-pig1 = Pig(('localhost', 9999), (2,1))
-pig2 = Pig(('localhost', 8888), (1,1))
+pig1 = Pig(('localhost', 9000), (2,1))
+pig2 = Pig(('localhost', 9001), (1,1))
+pig3 = Pig(('localhost', 9002), (0,1))
 pig1.connect(pig2)
-pig1.broadcast_bird_approaching((2,3))
+pig2.connect(pig3)
+pig1.broadcast_bird_approaching((2,3), 1)
 
 time.sleep(3)
 exit_flag = 1
