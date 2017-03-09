@@ -33,18 +33,13 @@ pigs.append(pig1)
 pigs.append(pig2)
 pigs.append(pig3)
 
-pig1.connect(pig2)
-pig2.connect(pig3)
-pig3.connect(pig1)
+# construct circular P2P network
+prev_pig = pigs[0]
+for pig in pigs[1:]:
+    prev_pig.connect(pig)
+    prev_pig = pig
+prev_pig.connect(pigs[0])
 
-#prev_pig = pigs[0]
-#for pig in pigs[1:]:
-#    prev_pig.connect(pig)
-#    #pig.connect(prev_pig)
-#pig.connect(pigs[0])
-
-#pig1.connect(pig2)
-#pig2.connect(pig3)
 pig1.broadcast_bird_approaching(bird_landing, 3)
 
 time.sleep(3)
