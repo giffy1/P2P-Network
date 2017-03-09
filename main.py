@@ -19,8 +19,9 @@ shelter.
 import time
 import numpy as np
 from pig import Pig
+import p2p
 
-exit_flag = 0    
+p2p.exit_flag = 0    
         
 bird_landing = (2,3)
 pigs = []
@@ -47,7 +48,7 @@ pig3.connect(pig1)
 pig1.broadcast_bird_approaching(bird_landing, 3)
 
 time.sleep(3)
-exit_flag = 1
+p2p.exit_flag = 1
 
 # we'll work with a 5 x 5 grid to start
 grid = np.zeros((5,5))
