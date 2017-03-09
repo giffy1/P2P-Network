@@ -18,10 +18,16 @@ def receive_message(socket, callback = None):
     passes them to the given callback, if provided.
     """
     while not exit_flag:
-        message = socket.recv(1024)
-        if message:
-            if callback:
-                callback(json.loads(message))
+        try:
+            message = socket.recv(1024)
+            if message:
+                if callback:
+                    callback(json.loads(message))
+        except Exception as err:
+            if err.message == "timed out":
+                pass
+            else:
+                print err
     
 def send_message(socket, queue_lock, message_queue):
     """
@@ -76,7 +82,7 @@ class ClientThread(threading.Thread):
     def run(self):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client_socket.connect(self.address)
-        self.client_socket.settimeout(3)
+        self.client_socket.settimeout(1)
         
         threading.Thread(target=receive_message, args=(self.client_socket, self.callback)).start()
         threading.Thread(target=send_message, args=(self.client_socket, self.queue_lock, self.message_queue)).start()   

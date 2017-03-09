@@ -48,7 +48,6 @@ pig3.connect(pig1)
 pig1.broadcast_bird_approaching(bird_landing, 3)
 
 time.sleep(3)
-p2p.exit_flag = 1
 
 # we'll work with a 5 x 5 grid to start
 grid = np.zeros((5,5))
@@ -57,9 +56,13 @@ for pig in pigs:
     grid[pig.location] = pig.get_id()
     if pig.location == bird_landing:
         pig.status -= 1
-        
-for pig in pigs:
-    print pig.get_id(), pig.status
+    
+pig3.request_status(20)
+#for pig in pigs:
+#    print pig.get_id(), pig.status
+
+time.sleep(3)
+p2p.exit_flag = 1
     
 print grid
 #node1 = P2PNode(('localhost', 9999))

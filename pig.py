@@ -37,13 +37,13 @@ class Pig(P2PNode):
         
         return
         
-    def _propagate_message(self, message):
+    def _propagate_message(self, message, direction="forward"):
         """
         Propogates the given message through the peer-to-peer network, decrementing the hop count.
         """
         message['hop_count'] -= 1 # decrement hop count
         if message['hop_count'] > 0 and message['sender'] != self.get_id():
-            self.send_message(message)
+            self.send_message(message, direction)
         elif message['sender'] == self.get_id():
             print "Pig{} was the initial sender of message with action {}; there's no need to propagate the message any further.".format(self.get_id(), message['action'])
         else:
@@ -73,11 +73,33 @@ class Pig(P2PNode):
 #        print "Pig{} received message from pig{} with content: {}".format(self.get_id(), message['sender'], message['content'])
 #        print "location:", message['location']
 #        print "hop count:", message['hop_count']
+        elif message['action'] == 'request_status':
+            print "Pig{} received status request for pig{}.".format(self.get_id(), message['pigID'])
+            if self.get_id() == message['pigID']:
+                print "Pig{} responding to status request.".format(self.get_id())
+                message['status'] = self.status
+                message['action'] = 'respond_status'
+                self._propagate_message(message, direction="backward")
+            elif self.get_id() == message['sender']:
+                print "Pig{} sent out a status request for pig{}. Pig{} likely doesn't exist, because the request returned to the sender.".format(self.get_id(), message['pigID'], message['pigID'])
+            else:
+                print "Pig{} forwarding request".format(self.get_id())
+                self._propagate_message(message)
+            return
+        elif message['action'] == 'respond_status':
+            print "Pig{} received status response from pig{}".format(self.get_id(), message['pigID'])
+            if self.get_id() == message['sender']:
+                print "received status at request sender: Pig{} has {} hits left.".format(message['pigID'], message['status'])
+            else:
+                self._propagate_message(message, direction="backward")
+            return
         if message['propagate']:
             self._propagate_message(message)
                 
-    def status(self):
+    def request_status(self, pigID):
         """
-        Returns the status of the pig.
+        Requests the status of the pig with the given pig ID.
         """
-        return self.status
+        print "Pig{} sending status request for pig{}.".format(self.get_id(), pigID)
+        self.send_message({'sender' : self.get_id(), 'action' : 'request_status', 'propagate' : True, 'pigID' : pigID, 'status' : -1, 'hop_count' : 10})
+        # status of -1 indicates unknown, i.e. it's a status request
