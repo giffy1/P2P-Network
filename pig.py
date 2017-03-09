@@ -24,6 +24,11 @@ class Pig(P2PNode):
         return self.address[1]-9000
         
     def broadcast_bird_approaching(self, location, hop_count=-1):
+        """
+        Notify other pigs that bird is approaching and will land at the given location. 
+        The hop count indicates how many times the message can propagate through the 
+        P2P network.
+        """
         self.send_message({'sender' : self.get_id(), 'action' : 'bird_approaching', 'propagate' : True, 'location' : location, 'hop_count' : hop_count})
         
     def take_shelter(self, location, hop_count=10):
