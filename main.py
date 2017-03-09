@@ -20,6 +20,7 @@ import time
 import numpy as np
 from pig import Pig
 import p2p
+from util import manhattan_distance
 
 p2p.exit_flag = 0 # set to 1 to indicate that P2P communication threads should terminate
 
@@ -31,6 +32,11 @@ def generate_random_coordinate(grid_size):
     Generates a random coordinate in a 2D grid with the given dimensions.
     """
     return (np.random.randint(0,grid_size[0]), np.random.randint(0,grid_size[1]))
+
+# indicates the amount of damage a pig suffers if hit by the bird's landing:
+damage_by_landing = 2
+# indicates the amount of damage a pig suffers if adjacent to a pig affected by the landing:
+damage_by_adjacent_pig = 1
 
 bird_landing = generate_random_coordinate(grid_size)
 bird_time_of_flight = 3 # number of seconds the bird requires to land
@@ -57,10 +63,14 @@ pigs[0].broadcast_bird_approaching(bird_landing, 3)
 
 time.sleep(bird_time_of_flight)
 
+# refresh grid and decrement status of each pig if hit
+grid = np.zeros(grid_size)
 for pig in pigs:
     grid[pig.location] = pig.get_id()
     if pig.location == bird_landing:
-        pig.status -= 1
+        pig.status -= damage_by_landing
+    if manhattan_distance(pig.location, bird_landing):
+        pig.status -= damage_by_adjacent_pig
     
 pigs[2].request_status(20)
 #for pig in pigs:
