@@ -6,7 +6,7 @@ Created on Wed Mar  8 20:36:38 2017
 """
 
 from p2p import P2PNode
-import numpy as np
+from util import manhattan_distance
 
 class Pig(P2PNode):
     def __init__(self, address, location):
@@ -54,12 +54,6 @@ class Pig(P2PNode):
         else:
             print "Pig{} could not send message; no hops left!".format(self.get_id())
         
-    def _manhattan_distance(self, location1, location2):
-        """
-        Returns the Manhattan distance between two locations.
-        """
-        return np.sum(np.abs(np.subtract(location1, location2)))
-        
     def on_message_received(self, message):
         print "Pig{} received message with action {}.".format(self.get_id(), message['action'])
         if message['action'] == 'bird_approaching':
@@ -70,7 +64,7 @@ class Pig(P2PNode):
             else:
                 print "Pig{} is safe.".format(self.get_id())
         elif message['action'] == 'take_shelter':
-            if self._manhattan_distance(message['location'], self.location) == 1:
+            if manhattan_distance(message['location'], self.location) == 1:
                 print "Pig{} must move".format(self.get_id())
                 self.location = (self.location[0]+1, self.location[1]) # TODO: Move more intelligently than this
             else:
