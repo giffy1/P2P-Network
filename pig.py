@@ -93,6 +93,15 @@ class Pig(P2PNode):
             else:
                 self._propagate_message(message, direction="backward")
             return
+        elif message['action'] == 'request_status_all':
+            print "Pig{} received status request for ALL pigs.".format(self.get_id())
+            if self.get_id() == message['sender']:
+                print "Pig{} received status of ALL pigs".format(self.get_id())
+                print "Status: ", message['status']
+            else:
+                message['status'][str(self.get_id())] = self.status
+                self._propagate_message(message)
+            return
         if message['propagate']:
             self._propagate_message(message)
                 
@@ -103,3 +112,10 @@ class Pig(P2PNode):
         print "Pig{} sending status request for pig{}.".format(self.get_id(), pigID)
         self.send_message({'sender' : self.get_id(), 'action' : 'request_status', 'propagate' : True, 'pigID' : pigID, 'status' : -1, 'hop_count' : 10})
         # status of -1 indicates unknown, i.e. it's a status request
+        
+    def request_status_all(self):
+        """
+        Requests the status of ALL pigs in the network.
+        """
+        print "Pig{} requested status from ALL pigs.".format(self.get_id())
+        self.send_message({'sender': self.get_id(), 'action' : 'request_status_all', 'propagate' : True, 'status' : {str(self.get_id()) : self.status}, 'hop_count' : 10})

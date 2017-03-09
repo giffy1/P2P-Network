@@ -62,6 +62,10 @@ pig3.request_status(20)
 #    print pig.get_id(), pig.status
 
 time.sleep(3)
+
+pig1.request_status_all()
+
+time.sleep(3)
 p2p.exit_flag = 1
     
 print grid
