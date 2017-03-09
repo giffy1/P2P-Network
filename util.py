@@ -7,7 +7,7 @@ Created on Thu Mar  9 18:39:29 2017
 
 import numpy as np
 
-def manhattan_distance(self, location1, location2):
+def manhattan_distance(location1, location2):
     """
     Returns the Manhattan distance between two locations.
     """
