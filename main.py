@@ -24,7 +24,7 @@ from util import manhattan_distance
 
 p2p.exit_flag = 0 # set to 1 to indicate that P2P communication threads should terminate
 
-grid_size = (2,2) # we'll work with a 5 x 5 grid to start
+grid_size = (4,4) # we'll work with a 5 x 5 grid to start
 grid = np.zeros(grid_size)
 
 def generate_random_coordinate(grid_size):
@@ -69,7 +69,7 @@ for pig in pigs:
     grid[pig.location] = pig.get_id()
     if pig.location == bird_landing:
         pig.status -= damage_by_landing
-    if manhattan_distance(pig.location, bird_landing):
+    if manhattan_distance(pig.location, bird_landing)==1:
         pig.status -= damage_by_adjacent_pig
     
 pigs[2].request_status(20)
