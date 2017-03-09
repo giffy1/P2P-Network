@@ -145,43 +145,77 @@ class Pig(P2PNode):
         
     def broadcast_bird_approaching(self, location, hop_count=-1):
         if hop_count > 0:
-            self.send_message({'sender' : self.get_id(), 'content' : 'this is a message', 'propagate' : True, 'location' : location, 'hop_count' : hop_count})
+            self.send_message({'sender' : self.get_id(), 'action' : 'bird_approaching', 'propagate' : True, 'location' : location, 'hop_count' : hop_count})
         else:
             print "Pig{} could not send message; no hops left!".format(self.get_id())
         
-    def take_shelter(self, location):
+    def take_shelter(self, location, hop_count=10):
         """
         Note: Although the method signature given in the assignment is take_shelter(pigID), 
         where I believe the pigID refers to the neighbor pig, I chose to design it such that 
         is informing its neighbors can simply send its position over the P2P network, since 
         pigs can easily check whether they are neighbors by comparing the positions.
         """
-        # TODO
+        self.send_message({'sender' : self.get_id(), 'action' : 'take_shelter', 'propagate': True, 'location' : location, 'hop_count': hop_count})
+        
         return
         
+    def _propagate_message(self, message):
+        """
+        Propogates the given message through the peer-to-peer network, decrementing the hop count.
+        """
+        message['sender'] = self.get_id() # update sender ID
+        message['hop_count'] -= 1 # decrement hop count
+        self.send_message(message)
+        
+    def _manhattan_distance(self, location1, location2):
+        """
+        Returns the Manhattan distance between two locations.
+        """
+        return np.sum(np.abs(np.subtract(location1, location2)))
+        
     def on_message_received(self, message):
-        print "Pig{} received message from pig{} with content: {}".format(self.get_id(), message['sender'], message['content'])
-        print "location:", message['location']
-        print "hop count:", message['hop_count']
+        print "Pig{} received message with action {}.".format(self.get_id(), message['action'])
+        if message['action'] == 'bird_approaching':
+            landing_location = tuple(message['location'])
+            if landing_location == self.location:
+                print "Pig{} will be hit. Notifying neighbors...".format(self.get_id())
+                self.take_shelter(landing_location)
+        elif message['action'] == 'take_shelter':
+            if self._manhattan_distance(message['location'], self.location) == 1:
+                print "Pig{} must move".format(self.get_id())
+            else:
+                print "However, pig{} is not in danger".format(self.get_id())
+#        print "Pig{} received message from pig{} with content: {}".format(self.get_id(), message['sender'], message['content'])
+#        print "location:", message['location']
+#        print "hop count:", message['hop_count']
         if message['propagate']:
-            self.broadcast_bird_approaching(message['location'], message['hop_count']-1)
+            self._propagate_message(message)
                 
     def status(self):
         """
-        Returns the status of the pig. TODO
+        Returns the status of the pig.
         """
         return self.status
         
+bird_landing = (2,3)
 pigs = []
-pig1 = Pig(('localhost', 9001), (2,3))
-pig2 = Pig(('localhost', 9002), (1,4))
+# TODO : if the first pig is the one hit, then currently, it won't respond properly
+pig1 = Pig(('localhost', 9001), (3,3))
+pig2 = Pig(('localhost', 9002), (2,3))
 pig3 = Pig(('localhost', 9003), (0,1))
 pigs.append(pig1)
 pigs.append(pig2)
 pigs.append(pig3)
-pig1.connect(pig2)
-pig2.connect(pig3)
-pig1.broadcast_bird_approaching((2,3), 3)
+
+prev_pig = pigs[0]
+for pig in pigs[1:]:
+    prev_pig.connect(pig)
+    #pig.connect(prev_pig)
+
+#pig1.connect(pig2)
+#pig2.connect(pig3)
+pig1.broadcast_bird_approaching(bird_landing, 3)
 
 time.sleep(3)
 exit_flag = 1
@@ -191,6 +225,11 @@ grid = np.zeros((5,5))
 
 for pig in pigs:
     grid[pig.location] = pig.get_id()
+    if pig.location == bird_landing:
+        pig.status -= 1
+        
+for pig in pigs:
+    print pig.get_id(), pig.status
     
 print grid
 #node1 = P2PNode(('localhost', 9999))
