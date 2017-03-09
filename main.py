@@ -21,17 +21,30 @@ import numpy as np
 from pig import Pig
 import p2p
 
-p2p.exit_flag = 0    
-        
-bird_landing = (2,3)
+p2p.exit_flag = 0 # set to 1 to indicate that P2P communication threads should terminate
+
+grid_size = (2,2) # we'll work with a 5 x 5 grid to start
+grid = np.zeros(grid_size)
+
+def generate_random_coordinate(grid_size):
+    """
+    Generates a random coordinate in a 2D grid with the given dimensions.
+    """
+    return (np.random.randint(0,grid_size[0]), np.random.randint(0,grid_size[1]))
+
+bird_landing = generate_random_coordinate(grid_size)
+bird_time_of_flight = 3 # number of seconds the bird requires to land
+
+n_pigs = 3
 pigs = []
 # TODO : if the first pig is the one hit, then currently, it won't respond properly
-pig1 = Pig(('localhost', 9001), (3,3))
-pig2 = Pig(('localhost', 9002), (2,3))
-pig3 = Pig(('localhost', 9003), (0,1))
-pigs.append(pig1)
-pigs.append(pig2)
-pigs.append(pig3)
+location = (-1,-1) # initial coordinates outside of the grid to ensure we enter the generation loop
+for i in range(n_pigs):
+    pigID = 9001+i
+    while location == (-1,-1) or grid[location]:
+        location = generate_random_coordinate(grid_size)
+    grid[location] = i+1
+    pigs.append(Pig(('localhost', pigID), location))
 
 # construct circular P2P network
 prev_pig = pigs[0]
@@ -40,25 +53,22 @@ for pig in pigs[1:]:
     prev_pig = pig
 prev_pig.connect(pigs[0])
 
-pig1.broadcast_bird_approaching(bird_landing, 3)
+pigs[0].broadcast_bird_approaching(bird_landing, 3)
 
-time.sleep(3)
-
-# we'll work with a 5 x 5 grid to start
-grid = np.zeros((5,5))
+time.sleep(bird_time_of_flight)
 
 for pig in pigs:
     grid[pig.location] = pig.get_id()
     if pig.location == bird_landing:
         pig.status -= 1
     
-pig3.request_status(20)
+pigs[2].request_status(20)
 #for pig in pigs:
 #    print pig.get_id(), pig.status
 
 time.sleep(3)
 
-pig1.request_status_all()
+pigs[0].request_status_all()
 
 time.sleep(3)
 p2p.exit_flag = 1
