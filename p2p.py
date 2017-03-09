@@ -144,11 +144,12 @@ class P2PNode():
                 self.queue_lock.release()
             else:
                 print "no node to respond to"
-            
-node1 = P2PNode(('localhost', 9001))
-node2 = P2PNode(('localhost', 9002))
-node1.connect(node2)
-node1.send_message({'content': 'this is a message'}, direction="forward")
-import time
-time.sleep(3)
-exit_flag=1
+                
+if __name__=='__main__':     
+    node1 = P2PNode(('localhost', 9001))
+    node2 = P2PNode(('localhost', 9002))
+    node1.connect(node2)
+    node1.send_message({'content': 'this is a message'}, direction="forward")
+    import time
+    time.sleep(3)
+    exit_flag=1
