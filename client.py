@@ -65,7 +65,7 @@ class ClientThread(threading.Thread):
     def run(self):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client_socket.connect(self.address)
-        while not exit_flag:
+        while not exit_flag:                    
             self.queue_lock.acquire() # do we need this because it is the only thread accessing the queue?
             if not self.message_queue.empty():
                 message = self.message_queue.get()
@@ -144,10 +144,7 @@ class Pig(P2PNode):
         return self.address[1]-9000
         
     def broadcast_bird_approaching(self, location, hop_count=-1):
-        if hop_count > 0:
-            self.send_message({'sender' : self.get_id(), 'action' : 'bird_approaching', 'propagate' : True, 'location' : location, 'hop_count' : hop_count})
-        else:
-            print "Pig{} could not send message; no hops left!".format(self.get_id())
+        self.send_message({'sender' : self.get_id(), 'action' : 'bird_approaching', 'propagate' : True, 'location' : location, 'hop_count' : hop_count})
         
     def take_shelter(self, location, hop_count=10):
         """
@@ -164,9 +161,13 @@ class Pig(P2PNode):
         """
         Propogates the given message through the peer-to-peer network, decrementing the hop count.
         """
-        message['sender'] = self.get_id() # update sender ID
         message['hop_count'] -= 1 # decrement hop count
-        self.send_message(message)
+        if message['hop_count'] > 0 and message['sender'] != self.get_id():
+            self.send_message(message)
+        elif message['sender'] == self.get_id():
+            print "Pig{} was the initial sender of message with action {}; there's no need to propagate the message any further.".format(self.get_id(), message['action'])
+        else:
+            print "Pig{} could not send message; no hops left!".format(self.get_id())
         
     def _manhattan_distance(self, location1, location2):
         """
@@ -181,9 +182,12 @@ class Pig(P2PNode):
             if landing_location == self.location:
                 print "Pig{} will be hit. Notifying neighbors...".format(self.get_id())
                 self.take_shelter(landing_location)
+            else:
+                print "Pig{} is safe.".format(self.get_id())
         elif message['action'] == 'take_shelter':
             if self._manhattan_distance(message['location'], self.location) == 1:
                 print "Pig{} must move".format(self.get_id())
+                self.location = (self.location[0]+1, self.location[1]) # TODO: Move more intelligently than this
             else:
                 print "However, pig{} is not in danger".format(self.get_id())
 #        print "Pig{} received message from pig{} with content: {}".format(self.get_id(), message['sender'], message['content'])
@@ -208,10 +212,15 @@ pigs.append(pig1)
 pigs.append(pig2)
 pigs.append(pig3)
 
-prev_pig = pigs[0]
-for pig in pigs[1:]:
-    prev_pig.connect(pig)
-    #pig.connect(prev_pig)
+pig1.connect(pig2)
+pig2.connect(pig3)
+pig3.connect(pig1)
+
+#prev_pig = pigs[0]
+#for pig in pigs[1:]:
+#    prev_pig.connect(pig)
+#    #pig.connect(prev_pig)
+#pig.connect(pigs[0])
 
 #pig1.connect(pig2)
 #pig2.connect(pig3)
