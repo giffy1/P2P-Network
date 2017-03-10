@@ -60,7 +60,8 @@ class Pig(P2PNode):
             landing_location = tuple(message['location'])
             if landing_location == self.location:
                 print "Pig{} will be hit. Notifying neighbors...".format(self.get_id())
-                self.take_shelter(landing_location)
+                self.location = (self.location[0]+1, self.location[1]) # TODO: Move more intelligently than this
+                #self.take_shelter(landing_location)
             else:
                 print "Pig{} is safe.".format(self.get_id())
         elif message['action'] == 'take_shelter':
