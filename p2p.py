@@ -9,6 +9,7 @@ import threading
 import socket
 import json
 import Queue
+import time
 
 exit_flag = 0
 
@@ -95,8 +96,9 @@ class P2PNode():
     server.
     
     """
-    def __init__(self, address):
+    def __init__(self, address, delay = 0):
         self.address = address
+        self.delay = delay
         self.message_queue = Queue.Queue()
         self.response_queue = Queue.Queue()
         self.queue_lock = threading.Lock()
@@ -139,6 +141,7 @@ class P2PNode():
         if direction == 'forward':
             if self.connected_as_client:
                 self.queue_lock.acquire()
+                time.sleep(self.delay)
                 self.message_queue.put(message)
                 self.queue_lock.release()
             else:
@@ -146,6 +149,7 @@ class P2PNode():
         else:
             if self.connected_as_server:
                 self.queue_lock.acquire()
+                time.sleep(self.delay)
                 self.response_queue.put(message)
                 self.queue_lock.release()
             else:
@@ -156,6 +160,5 @@ if __name__=='__main__':
     node2 = P2PNode(('localhost', 9002))
     node1.connect(node2)
     node1.send_message({'content': 'this is a message'}, direction="forward")
-    import time
     time.sleep(3)
     exit_flag=1

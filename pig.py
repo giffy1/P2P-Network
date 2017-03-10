@@ -9,8 +9,8 @@ from p2p import P2PNode
 from util import manhattan_distance
 
 class Pig(P2PNode):
-    def __init__(self, address, location):
-        P2PNode.__init__(self, address)
+    def __init__(self, address, location, send_delay=0):
+        P2PNode.__init__(self, address, send_delay)
         self.location = location
         self.status = 10 # the status is an integer indicating how many times it can be hit
         
