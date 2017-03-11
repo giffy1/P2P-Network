@@ -52,37 +52,48 @@ def get_neighbors(location):
     if location[1] < grid_size[1]-1:
         neighbors.append((location[0], location[1]+1))
     return neighbors
+    
+def get_open_neighbors(location):
+    open_neighbors = []
+    neighbors = get_neighbors(location)
+    for neighbor in neighbors:
+        if grid[neighbor] == 0:
+            open_neighbors.append(neighbor)
+    return open_neighbors
 
 # indicates the amount of damage a pig suffers if hit by the bird's landing:
 damage_by_landing = 2
 # indicates the amount of damage a pig suffers if adjacent to a pig affected by the landing:
 damage_by_adjacent_pig = 1
 
-bird_landing = generate_random_coordinate(grid_size)
+bird_landing = (2,3) # generate_random_coordinate(grid_size)
 bird_time_of_flight = 3 # number of seconds the bird requires to land
 
 n_pigs = 6
 pigs = []
+pig_locations=[(0,0), (0,3), (1,3), (2,2), (2,3), (3,2)]
 # TODO : if the first pig is the one hit, then currently, it won't respond properly
 location = (-1,-1) # initial coordinates outside of the grid to ensure we enter the generation loop
 for i in range(n_pigs):
     pigID = 9001+i
     while location == (-1,-1) or grid[location] != 0:
         location = generate_random_coordinate(grid_size)
+    location = pig_locations[i]
     grid[location] = i+1
     pigs.append(Pig(('localhost', pigID), location, 0))
 
 # construct circular P2P network
 prev_pig = pigs[0]
 for pig in pigs[1:]:
+    pig.set_open_neighbors(get_open_neighbors(pig.location))
     prev_pig.connect(pig)
     prev_pig = pig
-    time.sleep(0.2) # wait to make sure the server is connected to the host before attempting client connections
-    # TODO: This should not be done with a time delay but by waiting for a response following the connection
 prev_pig.connect(pigs[0])
 time.sleep(1)
 
 print "Bird landing at location {}".format(bird_landing)
+print "Starting locations:"
+print grid
 
 pigs[0].broadcast_bird_approaching(bird_landing, 3)
 
@@ -100,14 +111,13 @@ hit_grid = np.zeros_like(grid) # indicates which spaces were hit, so that recurs
 # nature of pigs knocking over pillars doesn't recurse to alreay hit locations
 
 def propagate_hit(location):
-    for neighbor in get_neighbors(bird_landing):
+    for neighbor in get_neighbors(location):
         if hit_grid[neighbor] == 1:
             continue
         elif grid[neighbor] > 0:
             get_pig_by_location(pigs, neighbor).status -= damage_by_adjacent_pig
             hit_grid[neighbor]=1
-            propagate_hit(neighbor)
-        elif grid[bird_landing] < 0:
+        elif grid[neighbor] < 0:
             hit_grid[neighbor]=1
             propagate_hit(neighbor)
 
@@ -116,7 +126,7 @@ if grid[bird_landing] > 0:
     get_pig_by_location(pigs, bird_landing).status -= damage_by_landing
     propagate_hit(bird_landing)
     
-pigs[2].request_status(20)
+pigs[2].request_status(4)
 #for pig in pigs:
 #    print pig.get_id(), pig.status
 
