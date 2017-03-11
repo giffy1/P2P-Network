@@ -110,6 +110,7 @@ class P2PNode():
         Connects to the given P2PNode peer.
         """
         peer.listen()
+        time.sleep(0.1)
         client_thread = ClientThread(peer.address, self.message_queue, self.queue_lock, self.on_message_received)
         client_thread.start()
         self.connected_as_client = True # TODO only if successful
