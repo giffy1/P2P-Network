@@ -13,6 +13,14 @@ class Pig(P2PNode):
         P2PNode.__init__(self, address, send_delay)
         self.location = location
         self.status = 10 # the status is an integer indicating how many times it can be hit
+        self.neighbors = [] # list of available neighboring locations
+        
+    def set_open_neighbors(self, neighbors):
+        """
+        Sets the open neighboring locations to which a pig coan move. These 
+        are locations that are not occupied by another pig or by a pillar.
+        """
+        self.neighbors = neighbors
         
     def get_id(self):
         """
@@ -59,9 +67,12 @@ class Pig(P2PNode):
         if message['action'] == 'bird_approaching':
             landing_location = tuple(message['location'])
             if landing_location == self.location:
-                print "Pig{} will be hit. Notifying neighbors...".format(self.get_id())
-                self.location = (self.location[0]+1, self.location[1]) # TODO: Move more intelligently than this
-                #self.take_shelter(landing_location)
+                print "Pig{} must move. Moving to next avilable location.".format(self.get_id())
+#                print "Pig{} will be hit. Notifying neighbors...".format(self.get_id())
+                if len(self.neighbors) > 0:
+                    self.location = self.neighbors[0] # simply choose first available location (may not be optimal but that's OK)
+                else:
+                    print "Could not move. There are no avilable neighboring locations..."
             else:
                 print "Pig{} is safe.".format(self.get_id())
         elif message['action'] == 'take_shelter':
