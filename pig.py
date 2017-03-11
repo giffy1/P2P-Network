@@ -6,7 +6,6 @@ Created on Wed Mar  8 20:36:38 2017
 """
 
 from p2p import P2PNode
-from util import manhattan_distance
 
 class Pig(P2PNode):
     def __init__(self, address, location, send_delay=0):
@@ -39,14 +38,11 @@ class Pig(P2PNode):
         """
         self.send_message({'sender' : self.get_id(), 'action' : 'bird_approaching', 'propagate' : True, 'location' : location, 'hop_count' : hop_count})
         
-    def take_shelter(self, location, hop_count=10):
+    def take_shelter(self, pigID, hop_count=-1):
         """
-        Note: Although the method signature given in the assignment is take_shelter(pigID), 
-        where I believe the pigID refers to the neighbor pig, I chose to design it such that 
-        is informing its neighbors can simply send its position over the P2P network, since 
-        pigs can easily check whether they are neighbors by comparing the positions.
+        Inform the given pig to move to another available space.
         """
-        self.send_message({'sender' : self.get_id(), 'action' : 'take_shelter', 'propagate': True, 'location' : location, 'hop_count': hop_count})
+        self.send_message({'sender' : self.get_id(), 'action' : 'take_shelter', 'propagate': True, 'pigID' : pigID, 'hop_count': hop_count})
         
         return
         
@@ -55,7 +51,7 @@ class Pig(P2PNode):
         Propogates the given message through the peer-to-peer network, decrementing the hop count.
         """
         message['hop_count'] -= 1 # decrement hop count
-        if message['hop_count'] > 0 and message['sender'] != self.get_id():
+        if message['hop_count'] != 0 and message['sender'] != self.get_id():
             self.send_message(message, direction)
         elif message['sender'] == self.get_id():
             print "Pig{} was the initial sender of message with action {}; there's no need to propagate the message any further.".format(self.get_id(), message['action'])
@@ -76,14 +72,15 @@ class Pig(P2PNode):
             else:
                 print "Pig{} is safe.".format(self.get_id())
         elif message['action'] == 'take_shelter':
-            if manhattan_distance(message['location'], self.location) == 1:
-                print "Pig{} must move".format(self.get_id())
-                self.location = (self.location[0]+1, self.location[1]) # TODO: Move more intelligently than this
+            if message['pigID'] == self.get_id():
+                print "Pig{} taking shelter.".format(self.get_id())
+                if len(self.neighbors) > 0:
+                    self.location = self.neighbors[0] # simply choose first available location (may not be optimal but that's OK)
+                else:
+                    print "Could not move. There are no avilable neighboring locations..."
             else:
-                print "However, pig{} is not in danger".format(self.get_id())
-#        print "Pig{} received message from pig{} with content: {}".format(self.get_id(), message['sender'], message['content'])
-#        print "location:", message['location']
-#        print "hop count:", message['hop_count']
+                self._propagate_message(message)
+            return
         elif message['action'] == 'request_status':
             print "Pig{} received status request for pig{}.".format(self.get_id(), message['pigID'])
             if self.get_id() == message['pigID']:
