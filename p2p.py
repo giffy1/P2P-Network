@@ -127,7 +127,10 @@ class P2PNode():
         
     def on_message_received(self, message):
         # do nothing, allow subclasses to override this
-        print self.address, message
+        # TEST:
+        if __name__=='__main__': 
+            assert message['action'] == 'test'
+            print "Message received at address {}.".format(self.address)
         return
         
     def send_message(self, message, direction = 'forward'):
@@ -160,6 +163,12 @@ if __name__=='__main__':
     node1 = P2PNode(('localhost', 9001))
     node2 = P2PNode(('localhost', 9002))
     node1.connect(node2)
-    node1.send_message({'content': 'this is a message'}, direction="forward")
+    node1.send_message({'action': 'test'}, direction="forward")
+    time.sleep(3)
+    node2.send_message({'action': 'test'}, direction="backward")
+    time.sleep(3)
+    node2.send_message({'action': 'test'}, direction="forward")
+    time.sleep(3)
+    node1.send_message({'action': 'test'}, direction="backward")
     time.sleep(3)
     exit_flag=1
